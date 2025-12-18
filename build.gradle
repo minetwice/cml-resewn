@@ -7,7 +7,10 @@ version = project.mod_version
 group = project.maven_group
 
 repositories {
-    // None needed beyond defaults for this scope
+    maven {
+        name = 'GeckoLib'
+        url = 'https://maven.geckolib.com/'
+    }
 }
 
 dependencies {
@@ -15,6 +18,15 @@ dependencies {
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    // === GeckoLib: OPTIONAL ===
+    compileOnly "software.bernie.geckolib:geckolib-fabric-1.21:${project.geckolib_version}"
+    runtimeOnly "software.bernie.geckolib:geckolib-fabric-1.21:${project.geckolib_version}"
+}
+
+// Add geckolib version
+ext {
+    geckolib_version = "4.7.2.1" // Latest for 1.21.4 as of Dec 2025
 }
 
 loom {
@@ -30,16 +42,4 @@ processResources {
     filesMatching("fabric.mod.json") {
         expand "version": project.version
     }
-}
-
-jar {
-    from("LICENSE") {
-        rename { "${it}_${project.archives_base_name}" }
-    }
-}
-
-// GitHub Actions Friendly: Just `./gradlew build` must pass
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = "UTF-8"
-    options.release = 21
 }
