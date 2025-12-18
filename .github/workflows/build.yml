@@ -5,6 +5,9 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # Force IPv4 to avoid Cloudflare IPv6 timeout
+      GRADLE_OPTS: "-Djava.net.preferIPv4Stack=true"
     steps:
       - uses: actions/checkout@v4
 
@@ -14,14 +17,14 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Validate Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@v3
+      - name: Validate Gradle Wrapper (IPv4-safe)
+        uses: gradle/actions/wrapper-validation@v4  # ← v4 has better retry
+        with:
+          wrapper-directory: gradle/wrapper
+        env:
+          GRADLE_OPTS: "-Djava.net.preferIPv4Stack=true"
 
       - name: Build with Gradle
         run: ./gradlew build --no-daemon
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: cml-resewn-build
-          path: build/libs/*.jar
+        env:
+          GRADLE_OPTS: "-Djava.net.preferIPv4Stack=true"
