@@ -14,8 +14,17 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class CMLResourceReloader implements SimpleSynchronousResourceReloadListener {
-    public static final Map<Identifier, CMLProperties> PROPERTIES_MAP = new HashMap<>();
-    public static final Map<String, JsonObject> MODELS_CACHE = new HashMap<>(); // key: path (e.g. "optifine/cml/author/sword.json")
+    // === Items (CML) ===
+    public static final Map<Identifier, CMLProperties> ITEM_PROPERTIES_MAP = new HashMap<>();
+    public static final Map<String, JsonObject> ITEM_MODELS_CACHE = new HashMap<>(); // key: path like "author/sword.json"
+
+    // === Blocks (CBL) ===
+    public static final Map<String, CMLProperties> BLOCK_PROPERTIES_MAP = new HashMap<>(); // key: "minecraft:stone"
+    public static final Map<String, JsonObject> BLOCK_MODELS_CACHE = new HashMap<>();
+    public static final Map<String, JsonObject> BLOCK_ANIMATIONS_CACHE = new HashMap<>(); // key: "author/stone.json"
+
+    // === Entities (CEM) ===
+    public static final Map<String, CMLProperties> ENTITY_PROPERTIES_MAP = new HashMap<>(); // key: "minecraft:zombie"
 
     @Override
     public Identifier getFabricId() {
@@ -24,39 +33,111 @@ public class CMLResourceReloader implements SimpleSynchronousResourceReloadListe
 
     @Override
     public void reload(ResourceManager manager, Profiler profiler) {
-        PROPERTIES_MAP.clear();
-        MODELS_CACHE.clear();
+        ITEM_PROPERTIES_MAP.clear();
+        ITEM_MODELS_CACHE.clear();
+        BLOCK_PROPERTIES_MAP.clear();
+        BLOCK_MODELS_CACHE.clear();
+        BLOCK_ANIMATIONS_CACHE.clear();
+        ENTITY_PROPERTIES_MAP.clear();
 
-        // Scan all /assets/minecraft/optifine/cml/.../*.properties
-        manager.findResources("optifine/cml", path -> path.getPath().endsWith(".properties"))
+        // === Load CML (Items) ===
+        loadCategory(manager, "optifine/cml", ITEM_PROPERTIES_MAP, ITEM_MODELS_CACHE);
+
+        // === Load CBL (Blocks) ===
+        loadCategory(manager, "optifine/cbl", BLOCK_PROPERTIES_MAP, BLOCK_MODELS_CACHE, this::extractBlockId);
+        // Load block animations (.mcmeta)
+        manager.findResources("optifine/cbl", path -> path.getPath().endsWith(".mcmeta"))
+                .forEach((id, res) -> {
+                    try (var reader = new InputStreamReader(res.getInputStream(), StandardCharsets.UTF_8)) {
+                        JsonObject json = JsonHelper.deserialize(reader);
+                        String path = id.getPath()
+                                .replace("optifine/cbl/", "")
+                                .replace(".mcmeta", "") + ".json";
+                        BLOCK_ANIMATIONS_CACHE.put(path, json);
+                    } catch (Exception e) {
+                        System.err.println("[CML] Invalid block animation: " + id);
+                    }
+                });
+
+        // === Load CEM (Entities) ===
+        manager.findResources("optifine/cem", path -> path.getPath().endsWith(".properties"))
                 .forEach((id, resource) -> {
                     try (var reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8)) {
                         CMLProperties props = CMLProperties.parse(reader);
                         if (props.isValid()) {
-                            PROPERTIES_MAP.put(id, props);
+                            String entityId = extractEntityId(id);
+                            ENTITY_PROPERTIES_MAP.put(entityId, props);
+                        }
+                    } catch (Exception e) {
+                        System.err.println("[CML] Failed to load entity props: " + id + " | " + e.getMessage());
+                    }
+                });
+
+        System.out.printf("[CML] Loaded: %d items, %d blocks, %d entities%n",
+                ITEM_PROPERTIES_MAP.size(),
+                BLOCK_PROPERTIES_MAP.size(),
+                ENTITY_PROPERTIES_MAP.size());
+    }
+
+    // Generic loader for cml/cbl
+    private void loadCategory(
+            ResourceManager manager,
+            String rootPath,
+            Map<?, CMLProperties> propsMap,
+            Map<String, JsonObject> modelsCache
+    ) {
+        loadCategory(manager, rootPath, propsMap, modelsCache, id -> null);
+    }
+
+    private void loadCategory(
+            ResourceManager manager,
+            String rootPath,
+            Map<?, CMLProperties> propsMap,
+            Map<String, JsonObject> modelsCache,
+            java.util.function.Function<Identifier, String> idExtractor
+    ) {
+        manager.findResources(rootPath, path -> path.getPath().endsWith(".properties"))
+                .forEach((id, resource) -> {
+                    try (var reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8)) {
+                        CMLProperties props = CMLProperties.parse(reader);
+                        if (props.isValid()) {
+                            Object key = idExtractor.apply(id);
+                            if (key == null) key = id;
+                            propsMap.put(key, props);
+
+                            // Preload model
+                            String model = props.getModel();
+                            if (model != null && !model.isEmpty()) {
+                                String modelPath = model.startsWith("optifine/") ? model : "optifine/" + rootPath + "/" + model;
+                                Identifier modelId = Identifier.of("minecraft", modelPath);
+                                if (manager.containsResource(modelId)) {
+                                    try (var modelReader = manager.openAsReader(modelId)) {
+                                        JsonObject json = JsonHelper.deserialize(modelReader);
+                                        String cacheKey = model.startsWith("optifine/") ? model.substring("optifine/".length()) : model;
+                                        modelsCache.put(cacheKey, json);
+                                    }
+                                }
+                            }
                         }
                     } catch (IOException e) {
                         System.err.println("[CML] Failed to load " + id + ": " + e.getMessage());
                     }
                 });
+    }
 
-        // Preload models referenced in properties
-        PROPERTIES_MAP.values().stream()
-                .map(CMLProperties::getModel)
-                .filter(m -> m != null && !m.isEmpty())
-                .distinct()
-                .forEach(modelPath -> {
-                    Identifier modelId = Identifier.tryParse("minecraft:" + modelPath); // relative to assets/minecraft/
-                    if (manager.containsResource(modelId)) {
-                        try (var reader = manager.openAsReader(modelId)) {
-                            JsonObject json = JsonHelper.deserialize(reader);
-                            MODELS_CACHE.put(modelPath, json);
-                        } catch (Exception e) {
-                            System.err.println("[CML] Invalid model: " + modelPath);
-                        }
-                    }
-                });
+    private String extractBlockId(Identifier id) {
+        String path = id.getPath().replace("optifine/cbl/", "").replace(".properties", "");
+        if (path.contains("/")) {
+            path = path.substring(path.indexOf("/") + 1);
+        }
+        return "minecraft:" + path;
+    }
 
-        System.out.println("[CML] Loaded " + PROPERTIES_MAP.size() + " custom models/textures.");
+    private String extractEntityId(Identifier id) {
+        String path = id.getPath().replace("optifine/cem/", "").replace(".properties", "");
+        if (path.contains("/")) {
+            path = path.substring(path.indexOf("/") + 1);
+        }
+        return "minecraft:" + path;
     }
 }
