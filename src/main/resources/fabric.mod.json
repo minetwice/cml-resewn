@@ -3,13 +3,14 @@
   "id": "cml-resewn",
   "version": "${version}",
   "name": "CML Resewn",
-  "description": "Custom Model & Texture Loader for Fabric — Items, Blocks, Entities with Animation",
+  "description": "Custom Model & Texture Loader — Works standalone. GeckoLib adds full 3D mob models.",
   "authors": ["YourName"],
   "contact": {
     "homepage": "https://github.com/yourname/cml-resewn",
     "sources": "https://github.com/yourname/cml-resewn"
   },
   "license": "MIT",
+  "icon": "assets/cml-resewn/icon.png",
   "environment": "client",
   "entrypoints": {
     "client": [
@@ -24,5 +25,8 @@
     "fabric-api": "*",
     "minecraft": "1.21.4",
     "java": ">=21"
+  },
+  "suggests": {
+    "geckolib": "*"
   }
 }
