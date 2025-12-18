@@ -3,17 +3,16 @@
   "id": "cml-resewn",
   "version": "${version}",
   "name": "CML Resewn",
-  "description": "Custom Model & Texture Loader for Fabric — CIT/CEM without OptiFine",
+  "description": "Custom Model & Texture Loader for Fabric — Items, Blocks, Entities with Animation",
   "authors": ["YourName"],
   "contact": {
     "homepage": "https://github.com/yourname/cml-resewn",
     "sources": "https://github.com/yourname/cml-resewn"
   },
   "license": "MIT",
-  "icon": "assets/cml-resewn/icon.png",
-  "environment": "*",
+  "environment": "client",
   "entrypoints": {
-    "main": [
+    "client": [
       "net.yourname.cml.CMLResewn"
     ]
   },
@@ -22,6 +21,7 @@
   ],
   "depends": {
     "fabricloader": ">=0.16.7",
+    "fabric-api": "*",
     "minecraft": "1.21.4",
     "java": ">=21"
   }
