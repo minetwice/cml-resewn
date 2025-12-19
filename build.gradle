@@ -9,7 +9,6 @@ group = project.maven_group
 repositories {
     mavenCentral()
     
-    // Modrinth Maven
     maven {
         name = "Modrinth"
         url = "https://api.modrinth.com/maven"
@@ -22,12 +21,19 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-    // GeckoLib - Correct Modrinth format (slug:version)
+    // GeckoLib
     modImplementation "maven.modrinth:geckolib:4.8.5"
 }
 
 loom {
     splitEnvironmentSourceSets()
+    
+    mods {
+        "cml-resewn" {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
 }
 
 java {
@@ -38,6 +44,7 @@ java {
 
 processResources {
     inputs.property "version", project.version
+    
     filesMatching("fabric.mod.json") {
         expand "version": project.version
     }
@@ -45,4 +52,10 @@ processResources {
 
 tasks.withType(JavaCompile).configureEach {
     options.release = 21
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_${project.archivesBaseName}"}
+    }
 }
