@@ -9,25 +9,16 @@ group = project.maven_group
 repositories {
     mavenCentral()
     
-    // GeckoLib - Updated working repository
+    // GeckoLib - Working repository
     maven { 
         name = 'GeckoLib'
         url = 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/'
     }
     
-    // Modrinth - Backup source for GeckoLib
+    // Modrinth - Backup
     maven {
         name = "Modrinth"
         url = "https://api.modrinth.com/maven"
-    }
-    
-    // CurseMaven - Additional backup
-    maven {
-        name = "CurseMaven"
-        url = "https://cursemaven.com"
-        content {
-            includeGroup "curse.maven"
-        }
     }
 }
 
@@ -37,8 +28,8 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-    // GeckoLib - Fixed dependencies
-    modImplementation "software.bernie.geckolib:geckolib-fabric-1.21:4.7.2"
+    // GeckoLib - Using version from gradle.properties
+    modImplementation "software.bernie.geckolib:geckolib-fabric-1.21:${project.geckolib_version}"
 }
 
 loom {
@@ -47,6 +38,8 @@ loom {
 
 java {
     withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 processResources {
@@ -54,4 +47,8 @@ processResources {
     filesMatching("fabric.mod.json") {
         expand "version": project.version
     }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 21
 }
