@@ -9,7 +9,7 @@ group = project.maven_group
 repositories {
     mavenCentral()
     
-    // Modrinth - Primary source
+    // Modrinth Maven
     maven {
         name = "Modrinth"
         url = "https://api.modrinth.com/maven"
@@ -22,8 +22,8 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-    // GeckoLib - Latest version from Modrinth
-    modImplementation "maven.modrinth:geckolib:4.8.5-fabric-1.21.4"
+    // GeckoLib - Correct Modrinth format (slug:version)
+    modImplementation "maven.modrinth:geckolib:4.8.5"
 }
 
 loom {
