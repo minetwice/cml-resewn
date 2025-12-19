@@ -9,7 +9,7 @@ group = project.maven_group
 repositories {
     mavenCentral()
     
-    // GeckoLib - Working repository
+    // GeckoLib - Official Cloudsmith repository
     maven { 
         name = 'GeckoLib'
         url = 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/'
@@ -28,8 +28,8 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-    // GeckoLib - Using version from gradle.properties
-    modImplementation "software.bernie.geckolib:geckolib-fabric-1.21:${project.geckolib_version}"
+    // GeckoLib - Correct artifact name for 1.21.4
+    modImplementation "software.bernie.geckolib:geckolib-fabric-1.21.4:${project.geckolib_version}"
 }
 
 loom {
